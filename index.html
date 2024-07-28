@@ -3,42 +3,39 @@
         <title>Code Wheel</title>
         <script src='Winwheel.js'></script>
         <link rel="stylesheet" type="text/css" href="style.css">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/@tsparticles/confetti@3.0.3/tsparticles.confetti.bundle.min.js"></script>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        <script type="text/javascript" charset="utf-8" src='.env.js'></script>
     </head>
     <body>
-        <div class="container-image">
-            <img class="logo-image" src="https://drive.google.com/thumbnail?id=1PENrpGnBFuupSg_npwz2cIh1A28teWv4" />
-        </div>
-        <div id="container-alert"></div>
-        <div class="container-row">
-            <div class="content-roullete col">
-                <div class="form-row text-center">
-                    <div class="kodex-point"></div>
-                </div>
-                <canvas id='canvas' width='440' height='440'>
-                    Canvas not supported, use another browser.
-                </canvas>
+            <div class="container-image">
+                <img class="logo-image" src="https://drive.google.com/thumbnail?id=1PENrpGnBFuupSg_npwz2cIh1A28teWv4" />
             </div>
-            <div class="content-form col">
-                <h5 class="title">Jogue para ganhar!</h5>
-                <p class="subtitle">
-                    Ei você que não ganha nem bingo! Aqui tem vale compras de até 10%. É só girar a roleta! Teste sua sorte.
-                </p>
-                <form>
-                    <div class="mb-3">
-                        <input type="text" placeholder="Digite seu nome" class="form-control" id="nameInput" aria-describedby="nameHelp">
+            <div id="container-alert"></div>
+            <div class="container-row">
+                <div class="content-roullete">
+                    <div class="form-row">
+                        <div class="kodex-point"></div>
                     </div>
-                    <div class="mb-3">
-                      <input type="email" placeholder="Digite seu e-mail" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+                    <canvas id='canvas' width='440' height='440'></canvas>
+                </div>
+                <div id="content-form" class="content-form">
+                    <h5 id="title" class="title"></h5>
+                    <p id="subtitle" class="subtitle"></p>
+                    <form onsubmit="handleSubmit(event)" name="myForm" id="container-form"></form>
+                    <div class="container-button-submit">
+                        <button
+                        id="spinButton"
+                        type="submit"
+                        form="container-form"
+                        class="button-submit">
+                    </button>
                     </div>
-                    <div class="mb-3">
-                        <input type="tel" placeholder="Digite seu telefone" class="form-control" id="(12)99232-0029" aria-describedby="cellphoneHelp">
-                    </div>
-                </form>
-                <div class="d-grid gap-2">
-                    <button id="popoverButton" type="button" onclick="startRoullete();" class="btn btn-primary" data-bs-toggle="popover" title="ESM in Browser" data-bs-content="Bang!">Girar</button>
+                </div>
+                <div id="content-result" class="content-result no-visibility">
+                    <h5 id="result-title" class="title"></h5>
+                    <p id="result-subtitle" class="subtitle"></p>
                 </div>
             </div>
         </div>
@@ -48,37 +45,227 @@
                 <img class="kodex-logo"  src="https://drive.google.com/thumbnail?id=1PENrpGnBFuupSg_npwz2cIh1A28teWv4" />
             </a>
         </footer>
+        
         <script>
-            let theWheel = new Winwheel({
-                'numSegments'  : 8,         // Number of segments
-                'outerRadius'  : 212,       // The size of the wheel.
-                'textFontSize' : 18,        // Font size.
-                'lineWidth'   : 2,
-                'segments'     :            // Definition of all the segments.
-                [
-                   {'fillStyle' : '#FFF', 'text' : 'Frete grátis',},
-                   {'fillStyle' : '#000', 'text' : '1% Desconto', 'textFillStyle': '#FFF'},
-                   {'fillStyle' : '#FFF', 'text' : 'Tente outra vez!'},
-                   {'fillStyle' : '#000', 'text' : '10% Desconto', 'textFillStyle': '#FFF'},
-                   {'fillStyle' : '#FFF', 'text' : '2% Desconto'},
-                   {'fillStyle' : '#000', 'text' : 'Frete grátis', 'textFillStyle': '#FFF'},
-                   {'fillStyle' : '#FFF', 'text' : '5% Desconto'},
-                   {'fillStyle' : '#000', 'text' : 'Tente outra vez!', 'textFillStyle': '#FFF'}
-                ],
-                'animation' :               // Definition of the animation
-                {
-                    'type'     : 'spinToStop',
-                    'duration' : 8,
-                    'spins'    : 8,
-                    'callbackFinished' : alertPrize,
-                    'callbackSound' : playSound,	// Specify function to call when sound is to be triggered.
-                },
+            
+            let data;
+            let leadSaved;
+            let theme;
+            let theWheel;
+
+            const request = axios.create({
+                baseURL: 'http://localhost:8021',
             });
+
+            const getBrightnessSegment = async (color) => {
+                var hex = color;
+                var nib = hex.split(''); 
+
+                var r = parseInt(nib[1]+nib[2],16);
+                var g = parseInt(nib[3]+nib[4],16);
+                var b = parseInt(nib[5]+nib[6],16);
+
+                var brightness = await ( r * 299 + g * 587 + b * 114) / 1000;
+
+                if (brightness > 128) {
+                    return '#000000'
+                }
+
+                return '#FFFFFF'
+            }
+
+            const handleAddThemePage = () => {
+                const color = theme.primary;
+                document.body.style.background = color;
+
+                document.getElementsByClassName('kodex-point')[0].style.borderTop = `25px solid ${theme.secondary}`;
+                document.getElementsByTagName("button")[0].style.background = theme.secondary;
+            }
+
+            const handleConfigInput = (properties, field) => {
+                var container = document.createElement("div");
+                    container.classList.add('container-input')
+
+                    var input = document.createElement("input");
+                    properties.forEach(element => {
+                        input[element.label] = element.value
+                    });
+
+                    var paragraphError = document.createElement("p");
+                    paragraphError.setAttribute("id", `${field}-error`);
+
+                    
+                    container.appendChild(input);
+                    container.appendChild(paragraphError);
+
+                    document.getElementById('container-form').appendChild(container);
+            }
+
+            const handleCreateInput = (fields) => {
+
+                if (fields.hasOwnProperty('exigeNome')) {
+                    handleConfigInput([
+                        {label: 'type', value: 'text'},
+                        {label: 'name', value: 'name'},
+                        {label: 'placeholder', value: 'Digite seu nome'},
+                        {label: 'minLength', value: '3'},
+                        {label: 'id', value: 'nameInput'},
+                        {label: 'onblur', value: (event) =>  handleValidation(event, 'name')},
+                    ], 'name')
+                }
+
+                if (fields.hasOwnProperty('exigeEmail')) {
+                    handleConfigInput([
+                        {label: 'type', value: 'email'},
+                        {label: 'name', value: 'email'},
+                        {label: 'placeholder', value: 'Digite seu e-mail'},
+                        {label: 'maxLength', value: '60'},
+                        {label: 'id', value: 'emailInput'},
+                        {label: 'onblur', value: (event) =>  handleValidation(event, 'email')},
+                    ], 'email')
+                }
+
+                if (fields.hasOwnProperty('exigeTelefone')) {
+                    handleConfigInput([
+                        {label: 'type', value: 'phone'},
+                        {label: 'name', value: 'phone'},
+                        {label: 'placeholder', value: 'Digite seu telefone'},
+                        {label: 'maxLength', value: '15'},
+                        {label: 'id', value: 'phoneInput'},
+                        {label: 'onblur', value: (event) =>  checkPhone(event)},
+                        {label: 'onkeyup', value: (event) =>  handleValidation(event, 'phone')},
+                    ], 'phone')
+                }
+
+                if (fields.hasOwnProperty('exigeDoc')) {
+                    handleConfigInput([
+                        {label: 'type', value: 'text'},
+                        {label: 'name', value: 'cpf'},
+                        {label: 'placeholder', value: 'Digite seu CPF'},
+                        {label: 'maxLength', value: '14'},
+                        {label: 'id', value: 'cpfInput'},
+                        {label: 'onblur', value: (event) =>  checkCPF(event.target.value, event.target)},
+                        {label: 'onkeyup', value: (event) =>  handleValidation(event, 'cpf')},
+                    ], 'cpf')
+                }
+            }
+
+            const handleConfigForm = () => {
+                const form = data.configRoleta.formulario;
+                document.getElementById("title").textContent = form.titulo;
+                document.getElementById("subtitle").textContent = form.descricao;
+                document.getElementById("spinButton").textContent = form.labelBotao;
+
+                handleCreateInput(data.configRoleta.camposExigidos)
+            }
+
+            const handleSaveLead = async (info) => {
+                const lead = {
+                    nome: info.name,
+                    email: info.email,
+                    telefone: info.phone,
+                    documento: info.cpf,
+                    ip: "127.0.0.1",
+                    device: "chrome desktop",
+                    token: data.token
+                }
+
+                try {
+                    const response = await request.post('/lead', lead, {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.log('error', error)
+                }
+            }
+
+            
+            window.onload = async function() {
+                try {
+                    const response = await request.get(`/roleta/${ROULETE_ID}`);
+                    data = response.data;
+                    const colors = response.data.configRoleta.colors;
+                    theme = {
+                        primary: colors.roleta[0],
+                        secondary: colors.roleta[1],
+                        complementary: colors.roleta[2],
+                        background: colors.fundo
+                    }
+                    handleAddThemePage()
+                    handleConfigForm()
+                    handleConfigRoullete()
+                } catch (error) {
+                    console.log('error', error)
+                }
+            }
+
+            const getColorSegment = async (index, color) => {
+                const maxColor = 3;
+                const rest = index % maxColor;
+                switch (rest) {
+                case 0:
+                    return color[0];
+                case 1:
+                    return color[1];
+                case 2:
+                    return color[2];
+                default:
+                    return color[0];
+                }
+            }
+
+            const createSegments = async () => {
+                const segments = [];
+                await Promise.all(data.fatiasRoleta.map(async (item, index) => {
+                    const colorSegment = await getColorSegment(index, data.configRoleta.colors.roleta)
+                    const brightnessSegment = await getBrightnessSegment(colorSegment)
+                    segments.push({
+                        'fillStyle' : colorSegment,
+                        'text' : item.label, 
+                        'textFillStyle': brightnessSegment,
+                        'textLineWidth': 2
+                    })
+                }))
+
+                return segments
+            }
+
+            const roulleteInformations = (segments) => {
+                theWheel = new Winwheel({
+                    'numSegments'  : data.fatiasRoleta.length,         // Number of segments
+                    'outerRadius'  : 212,       // The size of the wheel.
+                
+                    'textFontSize' : 18,        // Font size.
+                    'lineWidth'   : 2,
+                    'segments'     :            // Definition of all the segments.
+                    segments,
+                    'animation' :               // Definition of the animation
+                    {
+                        'type'     : 'spinToStop',
+                        'duration' : 8,
+                        'spins'    : data.fatiasRoleta.length,
+                        'callbackFinished' : onFishedRoullete,
+                        'callbackSound' : playSound,	// Specify function to call when sound is to be triggered.
+                    },
+                });
+
+                return theWheel
+            }
+
+            const handleConfigRoullete = async () => {
+                const segments = await createSegments();
+                roulleteInformations(segments)
+            }
 
             let audio = new Audio('tick.mp3');  // Create audio object and load desired file.
             let success = new Audio('success-song.mp3');  // Create audio object and load desired file.
 
-            function startRoullete() {
+            function startRoullete(result) {
+                var stopAt = theWheel.getRandomForSegment(result.id);
+                theWheel.animation.stopAngle = stopAt;
                 theWheel.startAnimation()
             }
 
@@ -91,37 +278,27 @@
                 audio.play();
             }
 
-            function handleBuildMessage(type, award) {
-                if (type === 'success') {
-                    return `Parabéns você acaba de ganhar "${award}", um enviamos com cupom com o seu prêmio
-                    para o seu e-mail, não perca esta oportunidade :)`
-                }
 
-                else {
-                    return `Ficamos triste por você, o resultado da roleta foi "${award}", mas não se preocupe com isso, você
-                    terá novas chances :)`
-                }
-            }
+            function handleConfigResult(text) {
+                const configResult = leadSaved.win ? data.configRoleta.telaVencedor : data.configRoleta.telaPerdedor
 
-            function handleCreateAlert(message, award, type) {
-                const wrapper = document.getElementById('container-alert')
-                wrapper.innerHTML = [
-                    `<div class="alert alert-${type === 'success' ? 'success' : 'warning'} alert-dismissible" role="alert">`,
-                    `   <h4 class="alert-heading">${type === 'success' ? 'Você ganhou!' : 'Não foi desta vez!'}</h4>`,
-                    `   <p>${message}</p>`,
-                    '</div>'
-                ].join('')
+                const contentForm = document.getElementById('content-form')
+                const contentResult = document.getElementById('content-result')
+
+                document.getElementById('result-title').innerHTML = configResult.titulo
+                document.getElementById('result-subtitle').innerHTML = configResult.descricao
+
+                contentForm.classList.add('no-visibility')
+                contentResult.classList.remove('no-visibility')
             }
  
-            // Called when the animation has finished.
-            function alertPrize(indicatedSegment)
-            {
-                // Do basic alert of the segment text.
-                success.play();
-                startConfetti()
-                const message = handleBuildMessage('losted', indicatedSegment.text)
-                handleCreateAlert(message, indicatedSegment.text, 'losted')
-                // alert("You have won " + indicatedSegment.text);
+            function onFishedRoullete(indicatedSegment) {
+                handleConfigResult(indicatedSegment);
+                
+                if (leadSaved.win) {
+                    success.play();
+                    startConfetti();
+                }
             }
 
             function startConfetti() {
@@ -150,6 +327,152 @@
                     requestAnimationFrame(frame);
                 }
                 })();
+            }
+
+            const handleValidation = (event, type) => {
+                let input = event.target
+                if (type === 'phone') {
+                    input.value = phoneMask(input.value);
+                } else if (type === 'email') {
+                    emailMask(input.value, input);
+                } else if (type === 'name') {
+                    nameValidation(input.value, input);
+                } else if (type === 'cpf') {
+                    input.value = cpfMask(input.value);
+                }
+            }
+
+
+            const phoneMask = (value) => {
+                if (!value) return ""
+                value = value.replace(/\D/g,'')
+                value = value.replace(/(\d{2})(\d)/,"($1) $2")
+                value = value.replace(/(\d)(\d{4})$/,"$1-$2")
+                return value
+            }
+
+            const cpfMask = (value) => {
+                value = value.replace(/\D/g, "");    
+                value = value.replace(/^(\d{3})/g, "$1.");
+                value = value.replace(/(\d{3})(\d{3})/g, "$1.$2-");        
+                return value
+            }
+
+            const checkPhone = (event) => {
+                if (event.target.value.length == 15) {
+                    return addInputValid(event.target)
+                }
+                
+                addInputNotValid(event.target, "Celular inválido")
+            }
+
+            const handleCheckCPF = (value) => {
+                var sumCPF;
+                var rest;
+                sumCPF = 0;
+                if (value == "00000000000") return false;
+
+                for (i=1; i<=9; i++) sumCPF = sumCPF + parseInt(value.substring(i-1, i)) * (11 - i);
+                rest = (sumCPF * 10) % 11;
+
+                    if ((rest == 10) || (rest == 11))  rest = 0;
+                    if (rest != parseInt(value.substring(9, 10)) ) return false;
+
+                sumCPF = 0;
+                    for (i = 1; i <= 10; i++) sumCPF = sumCPF + parseInt(value.substring(i-1, i)) * (12 - i);
+                    rest = (sumCPF * 10) % 11;
+
+                    if ((rest == 10) || (rest == 11))  rest = 0;
+                    if (rest != parseInt(value.substring(10, 11) ) ) return false;
+                    return true;
+            }
+
+            const checkCPF = (value, field) => {
+                const cpfWithoutMask = value.replace(/\D/g, '');
+                const isValid = handleCheckCPF(cpfWithoutMask)
+
+                if (isValid) {
+                    return addInputValid(field)
+                }
+                
+                addInputNotValid(field, "CPF inválido")
+            } 
+
+            const emailMask = (value, field) => {
+                if (/.+@.+\.[A-Za-z]+$/.test(value)) {
+                    return addInputValid(field)
+                }
+                
+                addInputNotValid(field, "E-mail inválido")
+            }
+
+            const nameValidation = (value, field) => {
+                if (value.length > 2) {
+                    return addInputValid(field)
+                }
+                
+                addInputNotValid(field, "Digite um nome maior que 2 caracteres")
+            }
+
+            const addInputValid = (field) => {
+                field.nextElementSibling.textContent = '';
+                field.nextElementSibling.classList.remove('message-invalid')
+                field.classList.remove('input-not-valid')
+            }
+
+            const addInputNotValid = (field, message) => {
+                field.nextElementSibling.textContent = message;
+                field.nextElementSibling.classList.add('message-invalid')
+                field.classList.add('input-not-valid')
+            }
+
+            const handleSubmit = async (event) => {
+                event.preventDefault();
+                const isValidForm = handleValidateForm(event);
+                
+                if (isValidForm.isValid) {
+                    leadSaved = await handleSaveLead(isValidForm.data)
+                    startRoullete(leadSaved)
+                }
+            }
+
+            const handleValidateForm = (event) => {
+                const name = document.getElementById("nameInput");
+                const email = document.getElementById("emailInput");
+                const phone = document.getElementById("phoneInput");
+                const cpf = document.getElementById("cpfInput");
+
+                let isValid = true;
+
+                if (name && name.value === '') {
+                    addInputNotValid(name, "Digite um nome válido.")
+                    isValid = false;
+                }
+
+                if (email && email.value === '' || !(/.+@.+\.[A-Za-z]+$/.test(email.value))) {
+                    addInputNotValid(email, "Digite um e-mail válido.")
+                    isValid = false;
+                }
+
+                if (phone && phone.value === '' || phone.value.length < 15) {
+                    addInputNotValid(phone, "Digite um telefone válido.")
+                    isValid = false;
+                }
+
+                if (cpf && cpf.value === '' || cpf.value.length < 14 || !handleCheckCPF(cpf.value.replace(/\D/g, ''))) {
+                    addInputNotValid(cpf, "Digite um CPF válido.")
+                    isValid = false;
+                }
+                
+                return {
+                    isValid,
+                    data: {
+                        name: name.value || '',
+                        email: email.value || '',
+                        phone: phone.value.replace(/\D/g, '') || '',
+                        cpf: cpf.value.replace(/\D/g, '') || '',
+                    }
+                }
             }
         </script>
     </body>

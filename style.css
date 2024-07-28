@@ -6,7 +6,7 @@
 }
 
 body {
-    background: #1a1a1a !important;
+    background: #1a1a1a;
     overflow-x: auto;
     height: 100%;
     width: 100%;
@@ -49,41 +49,34 @@ form {
 
 .title {
     color: white;
-    font-size: 20px;
-    text-align: center;
     margin-bottom: 10px;
+    font-size: 32px;
 }
 
 .subtitle {
     color: #C0BDBD;
-    font-size: 20px;
-    text-align: center;
+    font-size: 16px;
 }
 
 .container-row {
     padding: 20px;
     width: 100%;
     display: flex;
-
-    @media screen and (max-width: 950px) {
-        display: block;
-    }
 }
 
 .content-roullete {
     text-align: center;
+    width: 50%;
 }
 
 .content-form {
     padding: 20px;
+    width: 50%;
 }
 
 .container-footer {
     position: fixed;
     bottom: 0px;
-    @media screen and (max-width: 950px) {
-        position: relative;
-    }
 }
 
 .container-footer > a {
@@ -98,4 +91,93 @@ form {
 #container-alert {
     width: 500px;
     margin: 0 auto;
+}
+
+.container-input {
+    margin: 10px 0;
+}
+
+.container-input > p {
+    display: none;
+}
+
+input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 30px;
+    padding: 20px;
+}
+
+.input-not-valid {
+    border: 2px solid #ea868f;
+    border-radius: 2px;
+}
+
+.message-invalid {
+    display: block !important;
+    color: #ea868f;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.button-submit {
+    background-color: #1a1a1a;
+    border: none;
+    font-size: 18px;
+    color: #FFFFFF;
+    padding: 10px;
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.container-button-submit {
+    margin: 10px 0;
+}
+
+.container-win {
+    align-content: center;
+    padding: 100px;
+}
+
+.container-button-try-again {
+    margin: 20px 0px;
+}
+
+@media screen and (max-width: 950px) {
+    .container-row {
+        display: block;
+    }
+    .container-footer {
+        position: relative;
+    }
+    .content-form {
+        width: 100%;
+    }
+    .content-roullete {
+        width: 100%;
+    }
+}
+
+#page{
+    display: none;
+}
+#loading{
+    display: block;
+    color: white
+}
+
+.content-result {
+    align-content: center;
+}
+
+.visibility {
+    display: block;
+}
+
+.no-visibility {
+    display: none;
 }
